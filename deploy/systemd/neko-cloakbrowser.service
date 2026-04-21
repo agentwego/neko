@@ -1,0 +1,16 @@
+[Unit]
+Description=Neko CloakBrowser container stack
+Requires=docker.service
+After=docker.service network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+RemainAfterExit=yes
+WorkingDirectory=%h/workspace/neko
+ExecStart=/usr/bin/docker compose --env-file %h/workspace/neko/deploy/.env.cloakbrowser -f %h/workspace/neko/deploy/docker-compose.cloakbrowser.yml up -d
+ExecStop=/usr/bin/docker compose --env-file %h/workspace/neko/deploy/.env.cloakbrowser -f %h/workspace/neko/deploy/docker-compose.cloakbrowser.yml down
+TimeoutStartSec=0
+
+[Install]
+WantedBy=multi-user.target

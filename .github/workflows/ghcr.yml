@@ -57,9 +57,13 @@ jobs:
             platforms: linux/amd64,linux/arm64
           - name: kde
             platforms: linux/amd64,linux/arm64
+          - name: cloakbrowser
+            platforms: linux/amd64
+            dockerfile: Dockerfile
     with:
       name: ${{ matrix.name }}
       platforms: ${{ matrix.platforms }}
+      dockerfile: ${{ matrix.dockerfile || 'Dockerfile' }}
       latest: ${{ needs.check-latest.outputs.is_latest == 'true' }}
       latest_major: ${{ needs.check-latest.outputs.is_latest_major == 'true' }}
     secrets: inherit

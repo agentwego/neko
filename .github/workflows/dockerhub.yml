@@ -94,6 +94,7 @@ jobs:
           - vlc
           - xfce
           - kde
+          - cloakbrowser
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -122,10 +123,9 @@ jobs:
         uses: docker/build-push-action@v6
         with:
           context: apps/${{ matrix.tag }}
+          file: apps/${{ matrix.tag }}/Dockerfile
           push: true
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          build-args: |
-            BASE_IMAGE=${{ env.DOCKER_IMAGE }}:base
           cache-from: type=gha
           cache-to: type=gha,mode=max

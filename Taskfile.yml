@@ -1,0 +1,117 @@
+version: '3'
+
+vars:
+  APP_NAME: neko-cloakbrowser
+  IMAGE_NAME: local/neko-cloakbrowser:local
+  CONTAINER_NAME: neko-cloakbrowser
+  COMPOSE_FILE: deploy/docker-compose.cloakbrowser.yml
+  SYSTEMD_UNIT_DIR: /etc/systemd/system
+  SYSTEMD_SERVICE: neko-cloakbrowser.service
+  HOST_PROFILE_DIR: /home/yun/workspace/neko-data/profile
+  HOST_DOWNLOADS_DIR: /home/yun/workspace/neko-data/downloads
+
+tasks:
+  image:build:
+    desc: Build the custom CloakBrowser Neko image
+    cmds:
+      - docker build -f apps/cloakbrowser/Dockerfile -t {{.IMAGE_NAME}} apps/cloakbrowser
+
+  verify:smoke:
+    desc: Run a smoke test for build, service health, CDP, and supervisor processes
+    cmds:
+      - go-task image:build
+      - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} up -d --force-recreate
+      - sleep 5
+      - go-task service:health
+      - go-task service:cdp | tee /tmp/neko-cloakbrowser-cdp.json
+      - grep -q 'webSocketDebuggerUrl' /tmp/neko-cloakbrowser-cdp.json
+      - docker exec {{.CONTAINER_NAME}} supervisorctl status | tee /tmp/neko-cloakbrowser-supervisor.txt
+      - grep -q 'cloakbrowser-cdp-proxy[[:space:]]\+RUNNING' /tmp/neko-cloakbrowser-supervisor.txt
+      - grep -q 'neko[[:space:]]\+RUNNING' /tmp/neko-cloakbrowser-supervisor.txt
+      - docker inspect {{.CONTAINER_NAME}} --format '{{printf "%q" .Image}}' | tee /tmp/neko-cloakbrowser-image-id.txt
+      - docker image inspect {{.IMAGE_NAME}} --format '{{printf "%q" .Id}}' | tee /tmp/neko-cloakbrowser-built-image-id.txt
+      - docker inspect {{.CONTAINER_NAME}} | grep -o '"com.docker.compose.image":"[^"]*"' | tee /tmp/neko-cloakbrowser-compose-image-label.txt || true
+      - test "$(cat /tmp/neko-cloakbrowser-image-id.txt)" = "$(cat /tmp/neko-cloakbrowser-built-image-id.txt)"
+
+  image:inspect:
+    desc: Show built image metadata
+    cmds:
+      - docker image inspect {{.IMAGE_NAME}}
+
+  service:up:
+    desc: Start the stack with docker compose
+    cmds:
+      - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} up -d
+
+  service:down:
+    desc: Stop the stack
+    cmds:
+      - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} down
+
+  service:logs:
+    desc: Tail service logs
+    cmds:
+      - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} logs -f
+
+  service:status:
+    desc: Show service container status
+    cmds:
+      - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} ps
+
+  files:ls:
+    desc: List files in the shared downloads directory used by Hermes and Neko
+    cmds:
+      - ls -lah {{.HOST_DOWNLOADS_DIR}}
+
+  files:container-ls:
+    desc: List files from inside the container downloads directory
+    cmds:
+      - docker exec {{.CONTAINER_NAME}} ls -lah /home/neko/Downloads
+
+  files:push:
+    desc: 'Copy a local file into the shared downloads directory (usage: FILE=/abs/path go-task files:push)'
+    requires:
+      vars: [FILE]
+    cmds:
+      - cp {{.FILE}} {{.HOST_DOWNLOADS_DIR}}/
+      - ls -lah {{.HOST_DOWNLOADS_DIR}}
+
+  files:pull:
+    desc: 'Copy a file out of the shared downloads directory (usage: NAME=file.txt DEST=/abs/path go-task files:pull)'
+    requires:
+      vars: [NAME, DEST]
+    cmds:
+      - cp {{.HOST_DOWNLOADS_DIR}}/{{.NAME}} {{.DEST}}
+      - ls -lah {{.DEST}}
+
+  service:cdp:
+    desc: Query the exposed CDP endpoint
+    cmds:
+      - curl --http1.1 -fsS http://127.0.0.1:${CDP_PORT:-19222}/json/version
+
+  service:health:
+    desc: Query the exposed neko health endpoint
+    cmds:
+      - curl -fsS http://127.0.0.1:${HTTP_PORT:-18080}/health
+
+  systemd:install:
+    desc: Install/update the systemd unit for docker compose deployment
+    cmds:
+      - /usr/bin/install -Dm644 deploy/systemd/neko-cloakbrowser.service {{.SYSTEMD_UNIT_DIR}}/{{.SYSTEMD_SERVICE}}
+      - /usr/bin/systemctl daemon-reload
+
+  systemd:enable:
+    desc: Enable and start the systemd service
+    deps: [systemd:install]
+    cmds:
+      - /usr/bin/systemctl enable --now {{.SYSTEMD_SERVICE}}
+
+  systemd:restart:
+    desc: Restart the systemd service
+    cmds:
+      - /usr/bin/systemctl restart {{.SYSTEMD_SERVICE}}
+
+  systemd:status:
+    desc: Show systemd service status
+    cmds:
+      - /usr/bin/systemctl status {{.SYSTEMD_SERVICE}} --no-pager

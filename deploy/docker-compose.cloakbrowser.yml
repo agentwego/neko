@@ -1,0 +1,28 @@
+services:
+  neko:
+    build:
+      context: ../apps/cloakbrowser
+      dockerfile: Dockerfile
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser
+    restart: unless-stopped
+    shm_size: 2gb
+    ports:
+      - "18080:8080"
+      - "127.0.0.1:19222:9223"
+      - "52000:52000/udp"
+    environment:
+      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in deploy/.env.cloakbrowser}
+      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in deploy/.env.cloakbrowser}
+      NEKO_WEBRTC_UDPMUX: 52000
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser for remote access}
+    volumes:
+      - ${CLOAKBROWSER_HOST_PROFILE_DIR:?set host profile dir in deploy/.env.cloakbrowser}:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_HOST_DOWNLOADS_DIR:?set host downloads dir in deploy/.env.cloakbrowser}:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
