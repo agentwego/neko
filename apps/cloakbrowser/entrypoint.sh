@@ -10,15 +10,23 @@ export CLOAKBROWSER_WINDOW_SIZE="${CLOAKBROWSER_WINDOW_SIZE:-1920,1080}"
 export CLOAKBROWSER_START_URL="${CLOAKBROWSER_START_URL:-about:blank}"
 export CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS="${CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS:-0.0.0.0}"
 export CLOAKBROWSER_BIN="${CLOAKBROWSER_BIN:-/opt/cloakbrowser-bin/chrome}"
+export CLOAKBROWSER_STEALTH_ARGS_ENABLED="${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}"
+export CLOAKBROWSER_FINGERPRINT_PLATFORM="${CLOAKBROWSER_FINGERPRINT_PLATFORM:-windows}"
 
 mkdir -p "${CLOAKBROWSER_PROFILE_DIR}/Default" /home/neko/Downloads
 chown -R "${USER}:${USER}" "${CLOAKBROWSER_PROFILE_DIR}" /home/neko/Downloads 2>/dev/null || true
 
 mapfile -t CLOAK_ARGS < <(
 python3 - <<'PY'
+import os
 from cloakbrowser.config import get_default_stealth_args
-for arg in get_default_stealth_args():
-    print(arg)
+if os.environ.get('CLOAKBROWSER_STEALTH_ARGS_ENABLED', 'true').lower() not in {'0', 'false', 'no'}:
+    fingerprint_platform = os.environ.get('CLOAKBROWSER_FINGERPRINT_PLATFORM', '').strip().lower()
+    for arg in get_default_stealth_args():
+        if fingerprint_platform and arg.startswith('--fingerprint-platform='):
+            print(f'--fingerprint-platform={fingerprint_platform}')
+        else:
+            print(arg)
 PY
 )
 
@@ -52,8 +60,6 @@ ARGS=(
   --bwsi
   --force-dark-mode
   --disable-file-system
-  --disable-gpu
-  --disable-software-rasterizer
   --disable-dev-shm-usage
   "--remote-debugging-port=${CLOAKBROWSER_CDP_PORT}"
   "--remote-debugging-address=${CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS}"
