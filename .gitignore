@@ -31,10 +31,15 @@ node_modules
 dist
 bin
 
+# Python cache
+__pycache__/
+*.py[cod]
+
 # Environment files
 *.env
-.env.development
+.env.*
 deploy/.env.cloakbrowser
+deploy/.env.cloakbrowser.multi
 
 # Code Editors
 .idea

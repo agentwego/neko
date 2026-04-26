@@ -31,8 +31,9 @@ COPY openbox.xml /etc/neko/openbox.xml
 COPY entrypoint.sh /usr/local/bin/neko-cloakbrowser-entrypoint.sh
 COPY cdp-healthcheck.sh /usr/local/bin/neko-cloakbrowser-cdp-healthcheck.sh
 COPY cdp-proxy.py /usr/local/bin/neko-cloakbrowser-cdp-proxy.py
+COPY proxy-auth-forwarder.py /usr/local/bin/neko-cloakbrowser-proxy-auth-forwarder.py
 
-RUN chmod +x /usr/local/bin/neko-cloakbrowser-entrypoint.sh /usr/local/bin/neko-cloakbrowser-cdp-healthcheck.sh /usr/local/bin/neko-cloakbrowser-cdp-proxy.py
+RUN chmod +x /usr/local/bin/neko-cloakbrowser-entrypoint.sh /usr/local/bin/neko-cloakbrowser-cdp-healthcheck.sh /usr/local/bin/neko-cloakbrowser-cdp-proxy.py /usr/local/bin/neko-cloakbrowser-proxy-auth-forwarder.py
 
 ENV PATH=/usr/local/bin:${PATH} \
     PYTHONPATH=/usr/local/lib/python3.12/site-packages \
@@ -43,6 +44,15 @@ ENV PATH=/usr/local/bin:${PATH} \
     CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS=127.0.0.1 \
     CLOAKBROWSER_BIN=/opt/cloakbrowser-bin/chrome \
     CLOAKBROWSER_EXTRA_ARGS="" \
+    CLOAKBROWSER_PROXY_SERVER="" \
+    CLOAKBROWSER_PROXY_USERNAME="" \
+    CLOAKBROWSER_PROXY_PASSWORD="" \\
+    CLOAKBROWSER_PROXY_BYPASS_LIST="<-loopback>" \
+    CLOAKBROWSER_LOCAL_PROXY_HOST=127.0.0.1 \
+    CLOAKBROWSER_LOCAL_PROXY_PORT=18080 \
+    CLOAKBROWSER_STEALTH_ARGS_ENABLED=true \
+    CLOAKBROWSER_FINGERPRINT_PLATFORM=windows \
+    CLOAKBROWSER_FINGERPRINT="" \
     CLOAKBROWSER_START_URL=about:blank
 
 HEALTHCHECK --interval=10s --timeout=5s --retries=12 \

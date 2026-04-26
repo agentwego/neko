@@ -1,0 +1,560 @@
+services:
+  neko-01:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-01
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18100:8080"
+      - "127.0.0.1:19300:9223"
+      - "52100:52100/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52100
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_01:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_01:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_01:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_01:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_01:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-01:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-01:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-01:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-01
+    restart: unless-stopped
+    depends_on:
+      neko-01:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-01:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_01:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_01:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_01:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8940:8931
+      - 127.0.0.1:8950:8932
+
+  neko-02:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-02
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18101:8080"
+      - "127.0.0.1:19301:9223"
+      - "52101:52101/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52101
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_02:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_02:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_02:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_02:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_02:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-02:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-02:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-02:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-02
+    restart: unless-stopped
+    depends_on:
+      neko-02:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-02:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_02:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_02:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_02:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8941:8931
+      - 127.0.0.1:8951:8932
+
+  neko-03:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-03
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18102:8080"
+      - "127.0.0.1:19302:9223"
+      - "52102:52102/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52102
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_03:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_03:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_03:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_03:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_03:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-03:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-03:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-03:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-03
+    restart: unless-stopped
+    depends_on:
+      neko-03:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-03:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_03:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_03:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_03:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8942:8931
+      - 127.0.0.1:8952:8932
+
+  neko-04:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-04
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18103:8080"
+      - "127.0.0.1:19303:9223"
+      - "52103:52103/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52103
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_04:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_04:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_04:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_04:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_04:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-04:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-04:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-04:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-04
+    restart: unless-stopped
+    depends_on:
+      neko-04:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-04:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_04:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_04:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_04:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8943:8931
+      - 127.0.0.1:8953:8932
+
+  neko-05:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-05
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18104:8080"
+      - "127.0.0.1:19304:9223"
+      - "52104:52104/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52104
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_05:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_05:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_05:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_05:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_05:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-05:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-05:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-05:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-05
+    restart: unless-stopped
+    depends_on:
+      neko-05:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-05:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_05:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_05:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_05:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8944:8931
+      - 127.0.0.1:8954:8932
+
+  neko-06:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-06
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18105:8080"
+      - "127.0.0.1:19305:9223"
+      - "52105:52105/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52105
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_06:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_06:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_06:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_06:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_06:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-06:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-06:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-06:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-06
+    restart: unless-stopped
+    depends_on:
+      neko-06:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-06:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_06:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_06:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_06:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8945:8931
+      - 127.0.0.1:8955:8932
+
+  neko-07:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-07
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18106:8080"
+      - "127.0.0.1:19306:9223"
+      - "52106:52106/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52106
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_07:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_07:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_07:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_07:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_07:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-07:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-07:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-07:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-07
+    restart: unless-stopped
+    depends_on:
+      neko-07:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-07:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_07:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_07:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_07:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8946:8931
+      - 127.0.0.1:8956:8932
+
+  neko-08:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-08
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18107:8080"
+      - "127.0.0.1:19307:9223"
+      - "52107:52107/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52107
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_08:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_08:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_08:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_08:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_08:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-08:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-08:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-08:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-08
+    restart: unless-stopped
+    depends_on:
+      neko-08:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-08:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_08:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_08:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_08:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8947:8931
+      - 127.0.0.1:8957:8932
+
+  neko-09:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-09
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18108:8080"
+      - "127.0.0.1:19308:9223"
+      - "52108:52108/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52108
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_09:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_09:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_09:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_09:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_09:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-09:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-09:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-09:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-09
+    restart: unless-stopped
+    depends_on:
+      neko-09:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-09:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_09:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_09:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_09:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8948:8931
+      - 127.0.0.1:8958:8932
+
+  neko-10:
+    image: local/neko-cloakbrowser:local
+    container_name: neko-cloakbrowser-10
+    restart: unless-stopped
+    shm_size: 1gb
+    ports:
+      - "18109:8080"
+      - "127.0.0.1:19309:9223"
+      - "52109:52109/udp"
+    environment:
+      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_WEBRTC_UDPMUX: 52109
+      NEKO_WEBRTC_ICELITE: 1
+      NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
+      NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
+      NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      TZ: ${CLOAKBROWSER_TZ_10:-${CLOAKBROWSER_TZ:-America/New_York}}
+      CLOAKBROWSER_CDP_PORT: 9222
+      CLOAKBROWSER_PROXY_PORT: 9223
+      CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS: 127.0.0.1
+      CLOAKBROWSER_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_10:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_10:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_10:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+      CLOAKBROWSER_PROXY_BYPASS_LIST: ${CLOAKBROWSER_PROXY_BYPASS_LIST_10:-${CLOAKBROWSER_PROXY_BYPASS_LIST:-<-loopback>}}
+      CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
+      CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
+      CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+    volumes:
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-10:/home/neko/.config/cloakbrowser
+      - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-10:/home/neko/Downloads
+      - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp-10:
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp-10
+    restart: unless-stopped
+    depends_on:
+      neko-10:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: http://neko-10:9223
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER_10:-${CLOAKBROWSER_PROXY_SERVER:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME_10:-${CLOAKBROWSER_PROXY_USERNAME:?set in deploy/.env.cloakbrowser.multi}}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD_10:-${CLOAKBROWSER_PROXY_PASSWORD:?set in deploy/.env.cloakbrowser.multi}}
+    ports:
+      - 127.0.0.1:8949:8931
+      - 127.0.0.1:8959:8932

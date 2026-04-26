@@ -3,7 +3,9 @@ version: '3'
 vars:
   APP_NAME: neko-cloakbrowser
   IMAGE_NAME: local/neko-cloakbrowser:local
+  MCP_IMAGE_NAME: local/neko-playwright-mcp:local
   CONTAINER_NAME: neko-cloakbrowser
+  MCP_CONTAINER_NAME: neko-playwright-mcp
   COMPOSE_FILE: deploy/docker-compose.cloakbrowser.yml
   SYSTEMD_UNIT_DIR: /etc/systemd/system
   SYSTEMD_SERVICE: neko-cloakbrowser.service
@@ -16,18 +18,28 @@ tasks:
     cmds:
       - docker build -f apps/cloakbrowser/Dockerfile -t {{.IMAGE_NAME}} apps/cloakbrowser
 
+  image:mcp-build:
+    desc: Build the Playwright MCP sidecar image
+    cmds:
+      - docker build -f apps/playwright-mcp/Dockerfile -t {{.MCP_IMAGE_NAME}} apps/playwright-mcp
+
   verify:smoke:
-    desc: Run a smoke test for build, service health, CDP, and supervisor processes
+    desc: Run a smoke test for build, service health, CDP, MCP, and supervisor processes
     cmds:
       - go-task image:build
+      - go-task image:mcp-build
       - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} up -d --force-recreate
       - sleep 5
       - go-task service:health
       - go-task service:cdp | tee /tmp/neko-cloakbrowser-cdp.json
+      - go-task service:mcp | tee /tmp/neko-playwright-mcp-url.txt
       - grep -q 'webSocketDebuggerUrl' /tmp/neko-cloakbrowser-cdp.json
+      - grep -q '/mcp' /tmp/neko-playwright-mcp-url.txt
       - docker exec {{.CONTAINER_NAME}} supervisorctl status | tee /tmp/neko-cloakbrowser-supervisor.txt
       - grep -q 'cloakbrowser-cdp-proxy[[:space:]]\+RUNNING' /tmp/neko-cloakbrowser-supervisor.txt
       - grep -q 'neko[[:space:]]\+RUNNING' /tmp/neko-cloakbrowser-supervisor.txt
+      - docker inspect {{.MCP_CONTAINER_NAME}} --format '{{.State.Health.Status}}' | tee /tmp/neko-playwright-mcp-health.txt
+      - grep -q 'healthy' /tmp/neko-playwright-mcp-health.txt
       - docker inspect {{.CONTAINER_NAME}} --format '{{printf "%q" .Image}}' | tee /tmp/neko-cloakbrowser-image-id.txt
       - docker image inspect {{.IMAGE_NAME}} --format '{{printf "%q" .Id}}' | tee /tmp/neko-cloakbrowser-built-image-id.txt
       - docker inspect {{.CONTAINER_NAME}} | grep -o '"com.docker.compose.image":"[^"]*"' | tee /tmp/neko-cloakbrowser-compose-image-label.txt || true
@@ -37,6 +49,11 @@ tasks:
     desc: Show built image metadata
     cmds:
       - docker image inspect {{.IMAGE_NAME}}
+
+  image:mcp-inspect:
+    desc: Show built Playwright MCP image metadata
+    cmds:
+      - docker image inspect {{.MCP_IMAGE_NAME}}
 
   service:up:
     desc: Start the stack with docker compose
@@ -57,6 +74,93 @@ tasks:
     desc: Show service container status
     cmds:
       - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} ps
+
+  multi:up:
+    desc: Start ten additional CloakBrowser Neko instances with MCP sidecars
+    cmds:
+      - docker compose --env-file deploy/.env.cloakbrowser.multi -f deploy/docker-compose.cloakbrowser.multi.yml up -d
+
+  multi:down:
+    desc: Stop ten additional CloakBrowser Neko instances
+    cmds:
+      - docker compose --env-file deploy/.env.cloakbrowser.multi -f deploy/docker-compose.cloakbrowser.multi.yml down
+
+  multi:status:
+    desc: Show status for the ten additional CloakBrowser Neko instances
+    cmds:
+      - docker compose --env-file deploy/.env.cloakbrowser.multi -f deploy/docker-compose.cloakbrowser.multi.yml ps
+
+  multi:verify:
+    desc: Verify HTTP, CDP, and MCP ports for the ten additional instances
+    cmds:
+      - |
+        python - <<'PY'
+        import socket
+        import subprocess
+        import sys
+        import urllib.request
+
+        failures = []
+        fingerprints = []
+        for i in range(10):
+            idx = i + 1
+            http = 18100 + i
+            cdp = 19300 + i
+            mcp = 8940 + i
+            cliproxy = 8950 + i
+            label = f'{idx:02d}'
+            try:
+                if urllib.request.urlopen(f'http://127.0.0.1:{http}/health', timeout=3).read().strip() != b'true':
+                    raise RuntimeError('unexpected health response')
+            except Exception as exc:
+                failures.append(f'neko-{label} http:{http} {exc}')
+            try:
+                urllib.request.urlopen(f'http://127.0.0.1:{cdp}/json/version', timeout=3).read()
+            except Exception as exc:
+                failures.append(f'neko-{label} cdp:{cdp} {exc}')
+            try:
+                with socket.create_connection(('127.0.0.1', mcp), timeout=3):
+                    pass
+            except Exception as exc:
+                failures.append(f'neko-{label} mcp:{mcp} {exc}')
+            try:
+                urllib.request.urlopen(f'http://127.0.0.1:{cliproxy}/health', timeout=3).read()
+            except Exception as exc:
+                failures.append(f'neko-{label} cliproxy:{cliproxy} {exc}')
+            try:
+                cmd = [
+                    'docker', 'exec', f'neko-cloakbrowser-{label}', 'python3', '-c',
+                    "import pathlib\n"
+                    "for p in pathlib.Path('/proc').iterdir():\n"
+                    "    if not p.name.isdigit():\n"
+                    "        continue\n"
+                    "    try:\n"
+                    "        raw = (p / 'cmdline').read_bytes()\n"
+                    "    except Exception:\n"
+                    "        continue\n"
+                    "    if b'/opt/cloakbrowser-bin/chrome' not in raw:\n"
+                    "        continue\n"
+                    "    for arg in raw.split(bytes([0])):\\n"
+                    "        if arg.startswith(b'--fingerprint='):\n"
+                    "            print(arg.decode().split('=', 1)[1])\n"
+                    "            raise SystemExit(0)\n"
+                    "raise SystemExit(1)\n",
+                ]
+                fingerprint = subprocess.check_output(cmd, text=True, timeout=3).strip()
+                fingerprints.append((label, fingerprint))
+            except Exception as exc:
+                failures.append(f'neko-{label} fingerprint {exc}')
+            if not failures or not any(f'neko-{label} ' in f for f in failures):
+                print(f'neko-{label}: http:{http} OK | cdp:{cdp} OK | mcp:{mcp} OK | cliproxy:{cliproxy} OK | fingerprint:{fingerprints[-1][1]}')
+        duplicate_fingerprints = sorted({fp for _, fp in fingerprints if [v for _, v in fingerprints].count(fp) > 1})
+        if duplicate_fingerprints:
+            failures.append('duplicate fingerprints: ' + ', '.join(duplicate_fingerprints))
+        if len({fp for _, fp in fingerprints}) != 10:
+            failures.append(f'unique fingerprints: {len({fp for _, fp in fingerprints})}/10')
+        if failures:
+            print('\n'.join(failures), file=sys.stderr)
+            raise SystemExit(1)
+        PY
 
   files:ls:
     desc: List files in the shared downloads directory used by Hermes and Neko
@@ -88,6 +192,33 @@ tasks:
     desc: Query the exposed CDP endpoint
     cmds:
       - curl --http1.1 -fsS http://127.0.0.1:${CDP_PORT:-19222}/json/version
+
+  service:mcp:
+    desc: Verify the exposed Playwright MCP endpoint and print its URL
+    cmds:
+      - |
+        python - <<'PY'
+        import os
+        import socket
+
+        port = int(os.environ.get('PLAYWRIGHT_MCP_HOST_PORT', '8931'))
+        with socket.create_connection(('127.0.0.1', port), 2):
+            pass
+        print(f'http://localhost:{port}/mcp')
+        PY
+
+  service:cliproxy:
+    desc: Verify the exposed CLIProxy/OpenAI-compatible proxy endpoint and print its base URL
+    cmds:
+      - |
+        python - <<'PY'
+        import os
+        import urllib.request
+
+        port = int(os.environ.get('CLIPROXY_HOST_PORT', '8932'))
+        urllib.request.urlopen(f'http://127.0.0.1:{port}/health', timeout=3).read()
+        print(f'http://localhost:{port}/v1')
+        PY
 
   service:health:
     desc: Query the exposed neko health endpoint

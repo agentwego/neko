@@ -12,8 +12,7 @@ services:
       - "127.0.0.1:19222:9223"
       - "52000:52000/udp"
     environment:
-      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in deploy/.env.cloakbrowser}
-      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in deploy/.env.cloakbrowser}
+      NEKO_MEMBER_PROVIDER: noauth
       NEKO_WEBRTC_UDPMUX: 52000
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
@@ -23,8 +22,34 @@ services:
       CLOAKBROWSER_STEALTH_ARGS_ENABLED: ${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
+      CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
       NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser for remote access}
     volumes:
       - ${CLOAKBROWSER_HOST_PROFILE_DIR:?set host profile dir in deploy/.env.cloakbrowser}:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_HOST_DOWNLOADS_DIR:?set host downloads dir in deploy/.env.cloakbrowser}:/home/neko/Downloads
       - /etc/localtime:/etc/localtime:ro
+
+  playwright-mcp:
+    build:
+      context: ../apps/playwright-mcp
+      dockerfile: Dockerfile
+    image: local/neko-playwright-mcp:local
+    container_name: neko-playwright-mcp
+    restart: unless-stopped
+    depends_on:
+      neko:
+        condition: service_healthy
+    environment:
+      PLAYWRIGHT_MCP_PORT: 8931
+      PLAYWRIGHT_MCP_CDP_ENDPOINT: ${PLAYWRIGHT_MCP_CDP_ENDPOINT:-http://neko:9223}
+      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
+      CLIPROXY_PORT: 8932
+      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
+      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER:-}
+      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME:-}
+      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD:-}
+    ports:
+      - 127.0.0.1:${PLAYWRIGHT_MCP_HOST_PORT:-8931}:8931
+      - 127.0.0.1:${CLIPROXY_HOST_PORT:-8932}:8932
