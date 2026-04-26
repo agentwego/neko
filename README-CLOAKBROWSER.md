@@ -5,7 +5,6 @@
 ## 当前完成内容
 
 - `apps/cloakbrowser/`：CloakBrowser 运行层，复用已固定摘要的上游运行时结构
-- `apps/playwright-mcp/`：Playwright MCP sidecar 运行层，复用现有 CDP 入口而不改浏览器容器拓扑
 - `deploy/docker-compose.cloakbrowser.yml`：本地验证 / 单机部署 compose 文件
 - `deploy/systemd/neko-cloakbrowser.service`：基于 docker compose 的 systemd 封装
 - `Taskfile.yml`：标准 `task` 工作流，不依赖额外 `rtk` 包装
@@ -26,7 +25,7 @@
 - **Taskfile 改为标准 `task + docker + docker compose + curl`**
 - **切换为容器内 TCP 代理桥接 CDP**，避免 Docker bridge/NAT 直接转发 Chromium loopback DevTools 端口时出现 reset
 - **新增一键 smoke test 任务用于回归验证**
-- **新增 Playwright MCP sidecar，通过现有 `http://neko:9223` CDP 代理链路接入浏览器**
+- **集成容器内 browser-use daemon，通过本机 `http://127.0.0.1:9223` CDP 代理链路接入浏览器**
 
 ## 前置要求
 
@@ -35,7 +34,7 @@
 - Docker
 - Docker Compose（`docker compose` 子命令）
 - `task`（go-task）
-- Node.js 不再是宿主机前置要求；Playwright MCP 由 sidecar 容器承载
+- Node.js 不再是宿主机前置要求；自动化能力由 CloakBrowser 容器内的 `browser-use` Python daemon 承载
 
 ## 快速开始
 
@@ -53,14 +52,15 @@ cp deploy/.env.cloakbrowser.example deploy/.env.cloakbrowser
 
 然后编辑 `deploy/.env.cloakbrowser`，至少修改：
 
-- `NEKO_MEMBER_MULTIUSER_USER_PASSWORD=***`
-- `NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD=***`
+- `NEKO_MEMBER_MULTIUSER_USER_PASSWORD=change-me-user-password`
+- `NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD=change-me-admin-password`
 - `CLOAKBROWSER_START_URL=https://example.com`
 - `NEKO_NAT1TO1=203.0.113.10`（公网部署时）
 - `CLOAKBROWSER_HOST_PROFILE_DIR=/home/yun/workspace/neko-data/profile`
 - `CLOAKBROWSER_HOST_DOWNLOADS_DIR=/home/yun/workspace/neko-data/downloads`
 - `CLOAKBROWSER_EXTENSION_DIRS=/home/neko/Downloads/pixiv-plugin/unpacked`
-- `PLAYWRIGHT_MCP_HOST_PORT=8931`
+- `BROWSER_USE_SESSION=default`
+- `BROWSER_USE_CDP_URL=http://127.0.0.1:9223`
 
 如果你要从公网访问，还需要设置：
 
@@ -75,15 +75,26 @@ cp deploy/.env.cloakbrowser.example deploy/.env.cloakbrowser
 
 - `/home/neko/Downloads/pixiv-plugin/unpacked`
 
-> 注意：示例文件里的密码只是占位，**不要**直接用于生产。
+> 注意：当前 compose 使用 `NEKO_MEMBER_PROVIDER=multiuser`，默认通过 `NEKO_MEMBER_MULTIUSER_USER_PASSWORD` / `NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD` 配置访问密码；即使开启密码，也建议放在受控网络、SSH tunnel、防火墙白名单或反代鉴权之后。
 
 ### 2. 构建镜像
 
 不需要手动 `source` 环境文件。compose 和 systemd 都会直接读取 `deploy/.env.cloakbrowser`。
 
+镜像构建现在拆成两层：
+
+- `image:base`：长期不变的基础层，包含上游 Neko/Chrome、CloakBrowser 二进制和 `browser-use` / LLM Python 依赖；只有上游镜像 digest 或依赖版本变化时才需要重新构建。
+- `image:build`：轻量应用层，只复制 `entrypoint.sh`、`supervisord.conf`、CDP/proxy helper、策略文件和 `browser-use-agent` wrapper；日常改脚本时只会重建这一小层。
+
 ```bash
 cd /home/yun/workspace/neko
 go-task image:build
+```
+
+如果你明确只想刷新长期基础层，也可以单独运行：
+
+```bash
+go-task image:base
 ```
 
 ### 3. 启动服务
@@ -107,43 +118,47 @@ go-task service:health
 go-task service:cdp
 ```
 
-检查 Playwright MCP：
+检查容器内 browser-use daemon：
 
 ```bash
-go-task service:mcp
+go-task service:browser-use
 ```
 
 默认监听地址：
 
 - Neko HTTP: `http://127.0.0.1:18080`
 - CloakBrowser CDP: `http://127.0.0.1:19222/json/version`
-- Playwright MCP: `http://localhost:8931/mcp`
+- browser-use daemon: 容器内由 supervisor 托管，默认会连接 `http://127.0.0.1:9223`
 
 > 说明：当前方案恢复为标准 bridge 网络。CloakBrowser 仍只监听容器内 `127.0.0.1:9222`，再由容器内 TCP 代理转发到 `0.0.0.0:9223`，最后映射到宿主机 `127.0.0.1:19222`。这样既保留 Neko 的原始运行拓扑，也绕开 Docker 对 loopback DevTools 端口的转发问题。
 
-Playwright MCP 不再尝试嵌进浏览器容器本体，而是作为独立 sidecar 通过 `--cdp-endpoint=http://neko:9223` 连接现有 CDP 代理。这样浏览器/Neko 的健康模型、supervisord 进程树和镜像职责都保持不变，MCP 只做自动化消费者。
+browser-use 不再作为独立 sidecar 暴露端口，而是装进 CloakBrowser 镜像，并由同一个容器内的 supervisor 托管。它通过 `BROWSER_USE_CDP_URL=http://127.0.0.1:9223` 连接容器内 CDP 代理，因此 agent、浏览器、代理与运行环境保持在同一个实例边界内。
 
-### 5. 给 Agent / MCP 客户端使用
+### 5. 给 Agent 使用
 
-如果你的 MCP 客户端支持 HTTP/SSE 形式的 MCP 服务，把服务地址指向：
+进入目标容器后可以直接使用 browser-use CLI / daemon 会话；默认会话名来自 `BROWSER_USE_SESSION`，默认 CDP 地址来自 `BROWSER_USE_CDP_URL`：
 
-```text
-http://localhost:8931/mcp
+```bash
+docker exec -it neko-cloakbrowser browser-use --help
+docker exec -it neko-cloakbrowser supervisorctl status browser-use
 ```
 
-例如客户端配置可以写成：
+多实例部署时，每个 `neko-cloakbrowser-XX` 容器都有自己的 browser-use daemon，它只连接该实例内部的 `127.0.0.1:9223`，不会再额外开放旧 MCP 端口。
 
-```json
-{
-      "mcpServers": {
-        "playwright": {
-      "url": "http://localhost:8931/mcp"
-        }
-      }
-    }
+如果要让容器内的 browser-use 执行自然语言任务，还可以使用随镜像安装的 wrapper。它读取 OpenAI-compatible 环境变量，并连接同一个容器内的 CDP 会话：
+
+```bash
+docker exec neko-cloakbrowser browser-use-agent "打开 https://example.com 并总结页面标题"
 ```
 
-如果你修改了 `PLAYWRIGHT_MCP_HOST_PORT`，对应把 URL 里的端口一起改掉即可。
+相关配置项：
+
+- `OPENAI_BASE_URL`：默认建议 `http://host.docker.internal:8317/v1`，指向宿主机本地 Hermes 使用的 OpenAI-compatible 端点
+- `OPENAI_API_KEY`：端点 API key，不要提交真实值
+- `OPENAI_MODEL` / `BROWSER_USE_LLM_MODEL`：默认 `gpt-5.4-mini`
+- `BROWSER_USE_AGENT_MAX_STEPS`：单次 agent 任务最大步数，默认 `5`
+
+compose 里已为 Linux Docker 增加 `host.docker.internal:host-gateway`，这样容器能稳定访问宿主机本地端点。这个 wrapper 是“容器内同出口、同环境、同监督”的 agent 入口；如果只需要确定性控制，仍可直接用 `browser-use open/state/eval/...`。
 
 ## 持久化目录
 
@@ -289,22 +304,20 @@ sudo go-task systemd:status
 当你说“这个方案已经完成”，至少应该满足下面几点：
 
 1. `go-task image:build` 可以成功构建镜像
-2. `go-task image:mcp-build` 可以成功构建 Playwright MCP sidecar 镜像
-3. `go-task service:up` 可以成功拉起容器
-4. `go-task service:health` 返回成功
-5. `go-task service:cdp` 返回成功
-6. `go-task service:mcp` 返回一个可用的 `http://localhost:<port>/mcp`
-7. 容器内 `supervisorctl status` 中的核心进程都处于 `RUNNING`
-8. `neko-playwright-mcp` 容器健康状态为 `healthy`
-9. 重启 compose 后浏览器 profile 仍然存在
-10. `go-task verify:smoke` 可以作为一次性回归验证通过
+2. `go-task service:up` 可以成功拉起容器
+3. `go-task service:health` 返回成功
+4. `go-task service:cdp` 返回成功
+5. `go-task service:browser-use` 显示容器内 browser-use daemon 为 `RUNNING`
+6. 容器内 `supervisorctl status` 中的核心进程都处于 `RUNNING`
+7. 重启 compose 后浏览器 profile 仍然存在
+8. `go-task verify:smoke` 可以作为一次性回归验证通过
 
 ## 已知限制
 
 - 目前仍然依赖 `cloakhq/cloakbrowser:latest` 的内部 Python 包结构与 Chromium 缓存布局；虽然已经去掉了硬编码版本目录，但上游若大改内部组织，仍需重新适配。
 - systemd 单元目前是“工作区部署”模型，不是可分发安装包级别的通用部署方案。
 - 这套方案没有引入额外的 room management / multi-room orchestration，只是单实例 CloakBrowser Neko 运行层。
-- Playwright MCP 当前通过 sidecar 复用现有 CDP 代理，所以它依赖 `neko` 服务先 healthy；如果 CDP 代理链断了，MCP 也会随之失效。
+- browser-use 当前复用容器内 CDP 代理，所以如果 CDP 代理链断了，browser-use daemon 也会随之失效。
 
 ## 调试命令
 
@@ -320,8 +333,7 @@ go-task verify:smoke
 - 若 Compose 写入了镜像标签，也会顺手记录下来供排查
 - `health` 返回成功
 - CDP 响应里包含 `webSocketDebuggerUrl`
-- `go-task service:mcp` 能返回 MCP URL
-- `neko-playwright-mcp` 容器健康状态为 `healthy`
+- `go-task service:browser-use` 显示 browser-use daemon 为 `RUNNING`
 - `supervisorctl status` 中关键进程处于 `RUNNING`
 
 查看 compose 状态：
@@ -348,10 +360,10 @@ docker exec -it neko-cloakbrowser supervisorctl status
 curl -fsS http://127.0.0.1:19222/json/version | jq
 ```
 
-查看 Playwright MCP URL：
+查看 browser-use daemon 状态：
 
 ```bash
-go-task service:mcp
+go-task service:browser-use
 ```
 
 > 注意：返回的 `webSocketDebuggerUrl` 可能仍然是容器内原始 DevTools 地址；宿主机客户端连接时应优先使用宿主机暴露地址 `127.0.0.1:19222` 进行等价替换。

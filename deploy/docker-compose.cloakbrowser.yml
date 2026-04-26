@@ -7,12 +7,16 @@ services:
     container_name: neko-cloakbrowser
     restart: unless-stopped
     shm_size: 2gb
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     ports:
       - "18080:8080"
       - "127.0.0.1:19222:9223"
       - "52000:52000/udp"
     environment:
-      NEKO_MEMBER_PROVIDER: noauth
+      NEKO_MEMBER_PROVIDER: multiuser
+      NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
+      NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52000
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
@@ -23,33 +27,21 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
+      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
+      BROWSER_USE_SESSION: ${BROWSER_USE_SESSION:-default}
+      BROWSER_USE_CDP_URL: ${BROWSER_USE_CDP_URL:-http://127.0.0.1:9223}
+      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
+      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
+      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
+      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
+      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
+      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
+      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
+      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
+      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
       NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser for remote access}
     volumes:
       - ${CLOAKBROWSER_HOST_PROFILE_DIR:?set host profile dir in deploy/.env.cloakbrowser}:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_HOST_DOWNLOADS_DIR:?set host downloads dir in deploy/.env.cloakbrowser}:/home/neko/Downloads
+      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
-
-  playwright-mcp:
-    build:
-      context: ../apps/playwright-mcp
-      dockerfile: Dockerfile
-    image: local/neko-playwright-mcp:local
-    container_name: neko-playwright-mcp
-    restart: unless-stopped
-    depends_on:
-      neko:
-        condition: service_healthy
-    environment:
-      PLAYWRIGHT_MCP_PORT: 8931
-      PLAYWRIGHT_MCP_CDP_ENDPOINT: ${PLAYWRIGHT_MCP_CDP_ENDPOINT:-http://neko:9223}
-      PLAYWRIGHT_MCP_STEALTH_ENABLED: ${PLAYWRIGHT_MCP_STEALTH_ENABLED:-true}
-      CLIPROXY_PORT: 8932
-      CLIPROXY_UPSTREAM_BASE_URL: ${CLIPROXY_UPSTREAM_BASE_URL:-${OPENAI_BASE_URL:-https://api.openai.com/v1}}
-      CLIPROXY_UPSTREAM_API_KEY: ${CLIPROXY_UPSTREAM_API_KEY:-${OPENAI_API_KEY:-}}
-      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
-      CLIPROXY_PROXY_SERVER: ${CLOAKBROWSER_PROXY_SERVER:-}
-      CLIPROXY_PROXY_USERNAME: ${CLOAKBROWSER_PROXY_USERNAME:-}
-      CLIPROXY_PROXY_PASSWORD: ${CLOAKBROWSER_PROXY_PASSWORD:-}
-    ports:
-      - 127.0.0.1:${PLAYWRIGHT_MCP_HOST_PORT:-8931}:8931
-      - 127.0.0.1:${CLIPROXY_HOST_PORT:-8932}:8932
