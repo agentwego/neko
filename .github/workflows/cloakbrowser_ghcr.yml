@@ -1,0 +1,95 @@
+name: Build CloakBrowser Image to GHCR
+
+on:
+  workflow_dispatch:
+  push:
+    branches:
+      - master
+      - cloakbrowser/**
+    paths:
+      - .github/workflows/cloakbrowser_ghcr.yml
+      - apps/cloakbrowser/**
+      - deploy/docker-compose.cloakbrowser*.yml
+      - Taskfile.yml
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  BASE_IMAGE_NAME: ghcr.io/${{ github.repository }}/cloakbrowser-base
+  APP_IMAGE_NAME: ghcr.io/${{ github.repository }}/cloakbrowser
+
+jobs:
+  build-and-push:
+    name: Build and push CloakBrowser images
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GHCR_ACCESS_TOKEN || github.token }}
+
+      - name: Extract base metadata
+        id: meta-base
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.BASE_IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=edge,branch=master
+            type=ref,event=branch
+            type=sha,format=long
+
+      - name: Build and push base image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/cloakbrowser
+          file: apps/cloakbrowser/Dockerfile.base
+          push: true
+          tags: ${{ steps.meta-base.outputs.tags }}
+          labels: ${{ steps.meta-base.outputs.labels }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=cloakbrowser-base
+          cache-to: type=gha,mode=max,scope=cloakbrowser-base
+
+      - name: Extract app metadata
+        id: meta-app
+        uses: docker/metadata-action@v5
+        with:
+          images: ${{ env.APP_IMAGE_NAME }}
+          flavor: |
+            latest=false
+          tags: |
+            type=edge,branch=master
+            type=ref,event=branch
+            type=sha,format=long
+
+      - name: Build and push app image
+        uses: docker/build-push-action@v6
+        with:
+          context: apps/cloakbrowser
+          file: apps/cloakbrowser/Dockerfile
+          push: true
+          tags: ${{ steps.meta-app.outputs.tags }}
+          labels: ${{ steps.meta-app.outputs.labels }}
+          build-args: |
+            CLOAKBROWSER_BASE_IMAGE=${{ env.BASE_IMAGE_NAME }}:sha-${{ github.sha }}
+          platforms: linux/amd64
+          cache-from: type=gha,scope=cloakbrowser-app
+          cache-to: type=gha,mode=max,scope=cloakbrowser-app
+
+      - name: Print image refs
+        run: |
+          echo "base=${BASE_IMAGE_NAME}:sha-${GITHUB_SHA}"
+          echo "app=${APP_IMAGE_NAME}:sha-${GITHUB_SHA}"

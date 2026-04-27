@@ -5,14 +5,20 @@ export DISPLAY="${DISPLAY:-:99.0}"
 export HOME="${HOME:-/home/neko}"
 export USER="${USER:-neko}"
 export TZ="${TZ:-America/New_York}"
-export CLOAKBROWSER_PROFILE_DIR="${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}"
+export CLOAKBROWSER_USER_DATA_DIR="${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}"
+export CLOAKBROWSER_PROFILE_DIR="${CLOAKBROWSER_PROFILE_DIR:-${CLOAKBROWSER_USER_DATA_DIR}}"
 export CLOAKBROWSER_CDP_PORT="${CLOAKBROWSER_CDP_PORT:-9222}"
 export CLOAKBROWSER_WINDOW_SIZE="${CLOAKBROWSER_WINDOW_SIZE:-1920,1080}"
+export CLOAKBROWSER_DESKTOP_POINTER_ARGS_ENABLED="${CLOAKBROWSER_DESKTOP_POINTER_ARGS_ENABLED:-auto}"
+export CLOAKBROWSER_DESKTOP_GUARD_ENABLED="${CLOAKBROWSER_DESKTOP_GUARD_ENABLED:-auto}"
+export CLOAKBROWSER_DESKTOP_GUARD_SCRIPT="${CLOAKBROWSER_DESKTOP_GUARD_SCRIPT:-/usr/local/share/neko/desktop-fingerprint-guard.js}"
 export CLOAKBROWSER_START_URL="${CLOAKBROWSER_START_URL:-about:blank}"
 export CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS="${CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS:-0.0.0.0}"
 export CLOAKBROWSER_BIN="${CLOAKBROWSER_BIN:-/opt/cloakbrowser-bin/chrome}"
 export CLOAKBROWSER_STEALTH_ARGS_ENABLED="${CLOAKBROWSER_STEALTH_ARGS_ENABLED:-true}"
-export CLOAKBROWSER_FINGERPRINT_PLATFORM="${CLOAKBROWSER_FINGERPRINT_PLATFORM:-windows}"
+export CLOAKBROWSER_FINGERPRINT_PLATFORM="${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}"
+mkdir -p "$CLOAKBROWSER_PROFILE_DIR" 2>/dev/null || true
+
 export CLOAKBROWSER_EXTENSION_DIRS="${CLOAKBROWSER_EXTENSION_DIRS:-}"
 export CLOAKBROWSER_PROXY_SERVER="${CLOAKBROWSER_PROXY_SERVER:-}"
 export CLOAKBROWSER_PROXY_USERNAME="${CLOAKBROWSER_PROXY_USERNAME:-}"
@@ -97,9 +103,46 @@ PY
 )
 fi
 
+DESKTOP_POINTER_ARGS=()
+case "${CLOAKBROWSER_DESKTOP_POINTER_ARGS_ENABLED,,}" in
+  1|true|yes|on|auto)
+    # The Linux desktop profile should expose mouse/hover semantics, not a
+    # coarse touch-only pointer.  Without these switches CloakBrowser currently
+    # reports maxTouchPoints=10, pointer:coarse=true, hover=false, which is a
+    # high-risk desktop/mobile contradiction on Pixelscan.
+    DESKTOP_POINTER_ARGS+=(--touch-events=disabled --disable-touch-drag-drop)
+    ;;
+  0|false|no|off)
+    ;;
+  *)
+    echo "Unsupported CLOAKBROWSER_DESKTOP_POINTER_ARGS_ENABLED=${CLOAKBROWSER_DESKTOP_POINTER_ARGS_ENABLED}" >&2
+    exit 1
+    ;;
+esac
+
+DESKTOP_GUARD_ARGS=()
+case "${CLOAKBROWSER_DESKTOP_GUARD_ENABLED,,}" in
+  1|true|yes|on|auto)
+    if [[ ! -f "${CLOAKBROWSER_DESKTOP_GUARD_SCRIPT}" ]]; then
+      echo "Missing desktop fingerprint guard script: ${CLOAKBROWSER_DESKTOP_GUARD_SCRIPT}" >&2
+      exit 1
+    fi
+    # The companion cdp-init-script supervisor program injects this script via
+    # Page.addScriptToEvaluateOnNewDocument.  The raw browser binary launched
+    # here does not reliably honor --inject-script, so keep launch args clean.
+    ;;
+  0|false|no|off)
+    ;;
+  *)
+    echo "Unsupported CLOAKBROWSER_DESKTOP_GUARD_ENABLED=${CLOAKBROWSER_DESKTOP_GUARD_ENABLED}" >&2
+    exit 1
+    ;;
+esac
+
 ARGS=(
   "${CLOAK_ARGS[@]}"
   "${EXTENSION_ARGS[@]}"
+  "${DESKTOP_POINTER_ARGS[@]}"
   --no-sandbox
   --window-position=0,0
   "--window-size=${CLOAKBROWSER_WINDOW_SIZE}"
@@ -107,9 +150,7 @@ ARGS=(
   "--user-data-dir=${CLOAKBROWSER_PROFILE_DIR}"
   --no-first-run
   --start-maximized
-  --bwsi
   --force-dark-mode
-  --disable-file-system
   --disable-dev-shm-usage
   "--remote-debugging-port=${CLOAKBROWSER_CDP_PORT}"
   "--remote-debugging-address=${CLOAKBROWSER_REMOTE_DEBUGGING_ADDRESS}"

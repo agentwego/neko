@@ -24,16 +24,14 @@ tasks:
       - docker build -f apps/cloakbrowser/Dockerfile --build-arg CLOAKBROWSER_BASE_IMAGE={{.BASE_IMAGE_NAME}} -t {{.IMAGE_NAME}} apps/cloakbrowser
 
   verify:smoke:
-    desc: Run a smoke test for build, service health, CDP, browser-use, and supervisor processes
+    desc: Run a smoke test for build, service health, CDP, and supervisor processes
     cmds:
       - go-task image:build
       - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} up -d --force-recreate
       - sleep 5
       - go-task service:health
       - go-task service:cdp | tee /tmp/neko-cloakbrowser-cdp.json
-      - go-task service:browser-use | tee /tmp/neko-browser-use-status.txt
       - grep -q 'webSocketDebuggerUrl' /tmp/neko-cloakbrowser-cdp.json
-      - grep -q 'RUNNING' /tmp/neko-browser-use-status.txt
       - docker exec {{.CONTAINER_NAME}} supervisorctl status | tee /tmp/neko-cloakbrowser-supervisor.txt
       - grep -q 'cloakbrowser-cdp-proxy[[:space:]]\+RUNNING' /tmp/neko-cloakbrowser-supervisor.txt
       - grep -q 'neko[[:space:]]\+RUNNING' /tmp/neko-cloakbrowser-supervisor.txt
@@ -68,7 +66,7 @@ tasks:
       - docker compose --env-file deploy/.env.cloakbrowser -f {{.COMPOSE_FILE}} ps
 
   multi:up:
-    desc: Start ten additional CloakBrowser Neko instances with in-container browser-use
+    desc: Start ten additional CloakBrowser Neko instances
     cmds:
       - docker compose --env-file deploy/.env.cloakbrowser.multi -f deploy/docker-compose.cloakbrowser.multi.yml up -d
 
@@ -82,8 +80,18 @@ tasks:
     cmds:
       - docker compose --env-file deploy/.env.cloakbrowser.multi -f deploy/docker-compose.cloakbrowser.multi.yml ps
 
+  multi:fingerprint-screenshots:
+    desc: Capture Pixelscan fingerprint result screenshots from the ten additional instances
+    cmds:
+      - python3 apps/cloakbrowser/fingerprint-screenshot.py
+
+  multi:ip-purity:
+    desc: Batch-test BrowserLeaks IP purity, store SQLite records, and render a PDF report
+    cmds:
+      - python3 apps/cloakbrowser/ip-purity.py
+
   multi:verify:
-    desc: Verify HTTP, CDP, in-container browser-use, and fingerprints for the ten additional instances
+    desc: Verify HTTP, CDP, cliproxy, and fingerprints for the ten additional instances
     cmds:
       - |
         python - <<'PY'
@@ -108,12 +116,6 @@ tasks:
             except Exception as exc:
                 failures.append(f'neko-{label} cdp:{cdp} {exc}')
             try:
-                status = subprocess.check_output(['docker', 'exec', f'neko-cloakbrowser-{label}', 'supervisorctl', 'status', 'browser-use'], text=True, timeout=5)
-                if 'RUNNING' not in status:
-                    raise RuntimeError(status.strip())
-            except Exception as exc:
-                failures.append(f'neko-{label} browser-use {exc}')
-            try:
                 cmd = [
                     'docker', 'exec', f'neko-cloakbrowser-{label}', 'python3', '-c',
                     "import pathlib\n"
@@ -137,7 +139,7 @@ tasks:
             except Exception as exc:
                 failures.append(f'neko-{label} fingerprint {exc}')
             if not failures or not any(f'neko-{label} ' in f for f in failures):
-                print(f'neko-{label}: http:{http} OK | cdp:{cdp} OK | browser-use OK | fingerprint:{fingerprints[-1][1]}')
+                print(f'neko-{label}: http:{http} OK | cdp:{cdp} OK | fingerprint:{fingerprints[-1][1]}')
         duplicate_fingerprints = sorted({fp for _, fp in fingerprints if [v for _, v in fingerprints].count(fp) > 1})
         if duplicate_fingerprints:
             failures.append('duplicate fingerprints: ' + ', '.join(duplicate_fingerprints))
@@ -179,14 +181,41 @@ tasks:
     cmds:
       - curl --http1.1 -fsS http://127.0.0.1:${CDP_PORT:-19222}/json/version
 
-  service:browser-use:
-    desc: Verify the in-container browser-use daemon managed by supervisor
-    cmds:
-      - docker exec {{.CONTAINER_NAME}} supervisorctl status browser-use
   service:health:
     desc: Query the exposed neko health endpoint
     cmds:
       - curl -fsS http://127.0.0.1:${HTTP_PORT:-18080}/health
+
+  agent-browser:
+    desc: 'Run agent-browser inside one CloakBrowser container (usage: go-task agent-browser -- get url --json; CONTAINER=neko-cloakbrowser-01 go-task agent-browser -- snapshot)'
+    vars:
+      TARGET_CONTAINER: '{{default .CONTAINER_NAME .CONTAINER}}'
+      AGENT_BROWSER_CDP_PORT: '{{default "9223" .AGENT_BROWSER_CDP_PORT}}'
+      AGENT_BROWSER_SESSION: '{{default "neko" .AGENT_BROWSER_SESSION}}'
+    cmds:
+      - docker exec -e AGENT_BROWSER_SESSION={{.AGENT_BROWSER_SESSION}} {{.TARGET_CONTAINER}} agent-browser --cdp {{.AGENT_BROWSER_CDP_PORT}} {{.CLI_ARGS}}
+
+  multi:agent-browser:
+    desc: 'Run agent-browser inside a numbered multi container (usage: INDEX=1 go-task multi:agent-browser -- get url --json)'
+    requires:
+      vars: [INDEX]
+    vars:
+      AGENT_BROWSER_CDP_PORT: '{{default "9223" .AGENT_BROWSER_CDP_PORT}}'
+      AGENT_BROWSER_SESSION_PREFIX: '{{default "neko" .AGENT_BROWSER_SESSION_PREFIX}}'
+    cmds:
+      - |
+        label="$(printf '%02d' {{.INDEX}})"
+        docker exec -e AGENT_BROWSER_SESSION={{.AGENT_BROWSER_SESSION_PREFIX}}-${label} neko-cloakbrowser-${label} agent-browser --cdp {{.AGENT_BROWSER_CDP_PORT}} {{.CLI_ARGS}}
+
+  multi:agent-browser:verify:
+    desc: Verify agent-browser is callable in all ten multi containers via their internal CDP proxy
+    cmds:
+      - |
+        set -eu
+        for idx in $(seq 1 10); do
+          label="$(printf '%02d' "$idx")"
+          docker exec -e AGENT_BROWSER_SESSION=neko-${label} neko-cloakbrowser-${label} agent-browser --cdp 9223 get url --json
+        done
 
   systemd:install:
     desc: Install/update the systemd unit for docker compose deployment

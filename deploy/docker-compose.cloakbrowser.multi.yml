@@ -9,16 +9,22 @@ services:
     ports:
       - "18100:8080"
       - "127.0.0.1:19300:9223"
+      - "127.0.0.1:19400:8932"
       - "52100:52100/udp"
+      - "52100:52100/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52100
+      NEKO_WEBRTC_TCPMUX: 52100
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_01:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -31,23 +37,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-01:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-01:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-02:
@@ -60,16 +57,22 @@ services:
     ports:
       - "18101:8080"
       - "127.0.0.1:19301:9223"
+      - "127.0.0.1:19401:8932"
       - "52101:52101/udp"
+      - "52101:52101/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52101
+      NEKO_WEBRTC_TCPMUX: 52101
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_02:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -82,23 +85,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-02:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-02:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-03:
@@ -111,16 +105,22 @@ services:
     ports:
       - "18102:8080"
       - "127.0.0.1:19302:9223"
+      - "127.0.0.1:19402:8932"
       - "52102:52102/udp"
+      - "52102:52102/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52102
+      NEKO_WEBRTC_TCPMUX: 52102
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_03:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -133,23 +133,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-03:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-03:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-04:
@@ -162,16 +153,22 @@ services:
     ports:
       - "18103:8080"
       - "127.0.0.1:19303:9223"
+      - "127.0.0.1:19403:8932"
       - "52103:52103/udp"
+      - "52103:52103/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52103
+      NEKO_WEBRTC_TCPMUX: 52103
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_04:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -184,23 +181,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-04:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-04:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-05:
@@ -213,16 +201,22 @@ services:
     ports:
       - "18104:8080"
       - "127.0.0.1:19304:9223"
+      - "127.0.0.1:19404:8932"
       - "52104:52104/udp"
+      - "52104:52104/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52104
+      NEKO_WEBRTC_TCPMUX: 52104
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_05:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -235,23 +229,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-05:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-05:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-06:
@@ -264,16 +249,22 @@ services:
     ports:
       - "18105:8080"
       - "127.0.0.1:19305:9223"
+      - "127.0.0.1:19405:8932"
       - "52105:52105/udp"
+      - "52105:52105/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52105
+      NEKO_WEBRTC_TCPMUX: 52105
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_06:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -286,23 +277,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-06:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-06:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-07:
@@ -315,16 +297,22 @@ services:
     ports:
       - "18106:8080"
       - "127.0.0.1:19306:9223"
+      - "127.0.0.1:19406:8932"
       - "52106:52106/udp"
+      - "52106:52106/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52106
+      NEKO_WEBRTC_TCPMUX: 52106
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_07:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -337,23 +325,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-07:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-07:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-08:
@@ -366,16 +345,22 @@ services:
     ports:
       - "18107:8080"
       - "127.0.0.1:19307:9223"
+      - "127.0.0.1:19407:8932"
       - "52107:52107/udp"
+      - "52107:52107/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52107
+      NEKO_WEBRTC_TCPMUX: 52107
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_08:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -388,23 +373,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-08:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-08:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-09:
@@ -417,16 +393,22 @@ services:
     ports:
       - "18108:8080"
       - "127.0.0.1:19308:9223"
+      - "127.0.0.1:19408:8932"
       - "52108:52108/udp"
+      - "52108:52108/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52108
+      NEKO_WEBRTC_TCPMUX: 52108
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_09:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -439,23 +421,14 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-09:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-09:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
 
   neko-10:
@@ -468,16 +441,22 @@ services:
     ports:
       - "18109:8080"
       - "127.0.0.1:19309:9223"
+      - "127.0.0.1:19409:8932"
       - "52109:52109/udp"
+      - "52109:52109/tcp"
     environment:
       NEKO_MEMBER_PROVIDER: multiuser
       NEKO_MEMBER_MULTIUSER_USER_PASSWORD: ${NEKO_MEMBER_MULTIUSER_USER_PASSWORD:?set in env file}
       NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD: ${NEKO_MEMBER_MULTIUSER_ADMIN_PASSWORD:?set in env file}
       NEKO_WEBRTC_UDPMUX: 52109
+      NEKO_WEBRTC_TCPMUX: 52109
       NEKO_WEBRTC_ICELITE: 1
       NEKO_FILE_TRANSFER_ENABLED: ${NEKO_FILE_TRANSFER_ENABLED:-true}
       NEKO_FILE_TRANSFER_PATH: ${NEKO_FILE_TRANSFER_PATH:-/home/neko/Downloads}
       NEKO_SCREEN: ${NEKO_SCREEN:-1280x720@30}
+      CLOAKBROWSER_WINDOW_SIZE: ${CLOAKBROWSER_WINDOW_SIZE:-1280,720}
+      CLOAKBROWSER_USER_DATA_DIR: ${CLOAKBROWSER_USER_DATA_DIR:-/home/neko/.config/cloakbrowser}
+      CLOAKBROWSER_PROFILE_DIR: ${CLOAKBROWSER_PROFILE_DIR:-/home/neko/.config/cloakbrowser}
       TZ: ${CLOAKBROWSER_TZ_10:-${CLOAKBROWSER_TZ:-America/New_York}}
       CLOAKBROWSER_CDP_PORT: 9222
       CLOAKBROWSER_PROXY_PORT: 9223
@@ -490,21 +469,12 @@ services:
       CLOAKBROWSER_FINGERPRINT_PLATFORM: ${CLOAKBROWSER_FINGERPRINT_PLATFORM:-linux}
       CLOAKBROWSER_START_URL: ${CLOAKBROWSER_START_URL:-https://example.com}
       CLOAKBROWSER_EXTENSION_DIRS: ${CLOAKBROWSER_EXTENSION_DIRS:-/home/neko/Downloads/pixiv-plugin/unpacked}
-      BROWSER_USE_SETUP_LOGGING: ${BROWSER_USE_SETUP_LOGGING:-false}
-      BROWSER_USE_SESSION: default
-      BROWSER_USE_CDP_URL: http://127.0.0.1:9223
-      BROWSER_USE_LLM_MODEL: ${BROWSER_USE_LLM_MODEL:-gpt-5.4-mini}
-      BROWSER_USE_LLM_TEMPERATURE: ${BROWSER_USE_LLM_TEMPERATURE:-0.2}
-      BROWSER_USE_LLM_TIMEOUT: ${BROWSER_USE_LLM_TIMEOUT:-120}
-      BROWSER_USE_AGENT_MAX_STEPS: ${BROWSER_USE_AGENT_MAX_STEPS:-5}
-      BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP: ${BROWSER_USE_AGENT_MAX_ACTIONS_PER_STEP:-3}
-      BROWSER_USE_AGENT_USE_VISION: ${BROWSER_USE_AGENT_USE_VISION:-false}
-      OPENAI_BASE_URL: ${OPENAI_BASE_URL:?set OpenAI-compatible base URL in env file}
-      OPENAI_API_KEY: ${OPENAI_API_KEY:?set OpenAI-compatible API key in env file}
-      OPENAI_MODEL: ${OPENAI_MODEL:-gpt-5.4-mini}
-      NEKO_NAT1TO1: ${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}
+      CLIPROXY_HOST: ${CLIPROXY_HOST:-0.0.0.0}
+      CLIPROXY_PORT: ${CLIPROXY_PORT:-8932}
+      CLIPROXY_API_KEY: ${CLIPROXY_API_KEY:-}
+      CLIPROXY_IPINFO_URL: ${CLIPROXY_IPINFO_URL:-http://ipinfo.talordata.com}
+      NEKO_WEBRTC_NAT1TO1: ${NEKO_WEBRTC_NAT1TO1:-${NEKO_NAT1TO1:?set server reachable IP in deploy/.env.cloakbrowser.multi for remote access}}
     volumes:
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/profile-10:/home/neko/.config/cloakbrowser
       - ${CLOAKBROWSER_MULTI_DATA_DIR:?set in deploy/.env.cloakbrowser.multi}/downloads-10:/home/neko/Downloads
-      - ../apps/cloakbrowser/browser-use-agent.py:/usr/local/bin/browser-use-agent:ro
       - /etc/localtime:/etc/localtime:ro
